@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles_home.css" />
+    <title>Homepage</title>
+  </head>
+  <body>
+    <form action="/register" method="post">
+      <div class="container">
+        <div class="container">
+        <h1>Welcome to Dormitory System</h1>
+        <p>Kindly fill in this form to register.</p>
+        <label for="name"><b>Firstname-Lastname</b></label>
+        <input
+          type="text"
+          placeholder="Enter name"
+          name="name"
+          id="name"
+          required
+        />
+
+        <label for="username"><b>Username</b></label>
+        <input
+          type="text"
+          placeholder="Enter username"
+          name="username"
+          id="username"
+          required
+        />
+
+        <label for="pwd"><b>Password</b></label>
+        <input
+          type="password"
+          placeholder="Enter Password"
+          name="pwd"
+          id="pwd"
+          required
+        />
+
+        <label for="pwd-repeat"><b>Repeat Password</b></label>
+        <input
+          type="password"
+          placeholder="Repeat Password"
+          name="pwd_repeat"
+          id="pwd_repeat"
+          required
+        />
+
+        <button type="submit">Register</button>
+      </div>
+
+      <div>
+        <p>Already have an account? <a href="login.html">Log in</a>.</p>
+      </div>
+    </form>
+    <script>
+      document.querySelector('form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const response = await fetch('/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams(formData).toString(),
+        });
+        const result = await response.json();
+        alert(result.message);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles_home.css" />
+    <title>Login</title>
+  </head>
+  <body>
+    <form action="/login" method="post" id="login-form">
+      <div class="container">
+        <h1>Login to Dormitory System</h1>
+
+        <label for="username"><b>Username</b></label>
+        <input
+          type="text"
+          placeholder="Enter username"
+          name="username"
+          id="username"
+          required
+        />
+
+        <label for="pwd"><b>Password</b></label>
+        <input
+          type="password"
+          placeholder="Enter Password"
+          name="pwd"
+          id="pwd"
+          required
+        />
+
+        <button type="submit">Log in</button>
+      </div>
+    </form>
+
+    <div>
+      <p>Don't have an account? <a href="/register.html">Register</a>.</p>
+    </div>
+
+    <script>
+      document
+        .getElementById("login-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const formData = new FormData(e.target);
+          const response = await fetch("/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams(formData).toString(),
+          });
+
+          const result = await response.json();
+          if (result.message) {
+            alert(result.message);
+          } else if (result.redirect) {
+            window.location.href = result.redirect;
+          } else {
+            console.error("Unexpected response:", result);
+          }
+        });
+    </script>
+  </body>
+</html>
