@@ -8,10 +8,7 @@
   </head>
   <body>
     <header>
-      <h1>
-        Welcome <span id="userNamePlaceholder"></span> to the Dormitory
-        Management System
-      </h1>
+      <h1>Welcome to the Dormitory Management System</h1>
     </header>
 
     <section>
@@ -25,8 +22,7 @@
             <th>Monthly Rent (Baht/month)</th>
           </tr>
         </thead>
-        <tbody>
-        </tbody>
+        <tbody></tbody>
       </table>
     </section>
 
@@ -71,7 +67,7 @@
             const userNameElement = document.getElementById(
               "userNamePlaceholder"
             );
-            userNameElement.textContent = data.userName;
+            userNameElement.textContent = data.userName; // Use data.userName to set the correct username
           })
           .catch((error) => {
             console.error("Error fetching user name:", error);
@@ -85,7 +81,7 @@
             const tableBody = document
               .getElementById("availableRooms")
               .querySelector("tbody");
-            tableBody.innerHTML = ""; 
+            tableBody.innerHTML = "";
 
             const uniqueDorms = new Set();
             const uniqueRooms = new Set();
@@ -167,11 +163,13 @@
           });
 
           const result = await response.json();
-          if (result.message) {
+          if (result.message === "Booking successful") {
+            alert("Booking successful");
+            closeModal();
+            // Reload the page after a successful booking
+            window.location.reload();
+          } else {
             alert(result.message);
-            if (result.message === "Booking successful") {
-              closeModal();
-            }
           }
         });
 

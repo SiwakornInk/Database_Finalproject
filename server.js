@@ -76,7 +76,7 @@ app.post("/register", (req, res) => {
 app.post("/login", (req, res) => {
   const { username, pwd } = req.body;
   db.query(
-    "SELECT name, role FROM users WHERE username = ? AND password = ?",
+    "SELECT username, role FROM users WHERE username = ? AND password = ?",
     [username, pwd],
     (err, results) => {
       if (err) {
@@ -92,7 +92,8 @@ app.post("/login", (req, res) => {
           .json({ message: "Invalid username or password." });
       }
 
-      req.session.userName = results[0].name;
+      // Set the session variable here
+      req.session.userName = results[0].username;
 
       const userRole = results[0].role;
       if (userRole === "user") {
@@ -129,28 +130,74 @@ app.get("/api/rooms", (req, res) => {
 });
 
 app.post("/api/book", (req, res) => {
-  const { dormitory_name, room_number, start_date, username } = req.body;
-
+  const { dormitory_name, room_number, start_date } = req.body;
   const booking_time = new Date();
+  const username = req.session.userName; // Use the correct username from the session
 
-  const user = req.session.userName;
-
-  const sql = `
-    INSERT INTO bookings (username, dormitory_name, room_number, start_date, booking_time)
-    VALUES (?, ?, ?, ?, ?)
+  // Check if the room is available
+  const checkRoomAvailabilitySql = `
+    SELECT is_available
+    FROM rooms
+    WHERE dormitory_name = ? AND room_number = ?
   `;
 
   db.query(
-    sql,
-    [user, dormitory_name, room_number, start_date, booking_time],
-    (err, result) => {
-      if (err) {
-        console.error("Error inserting booking:", err);
+    checkRoomAvailabilitySql,
+    [dormitory_name, room_number],
+    (checkErr, checkResults) => {
+      if (checkErr) {
+        console.error("Error checking room availability:", checkErr);
         return res
           .status(500)
           .json({ message: "Booking failed. Please try again." });
       }
-      res.json({ message: "Booking successful" });
+
+      if (checkResults.length === 0 || checkResults[0].is_available !== 1) {
+        // Room is not available, return an error message
+        return res.status(400).json({ message: "Room is not available." });
+      }
+
+      // Room is available, proceed with booking
+      const insertBookingSql = `
+      INSERT INTO bookings (username, dormitory_name, room_number, start_date, booking_time)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+
+      db.query(
+        insertBookingSql,
+        [username, dormitory_name, room_number, start_date, booking_time],
+        (err, result) => {
+          if (err) {
+            console.error("Error inserting booking:", err);
+            return res
+              .status(500)
+              .json({ message: "Booking failed. Please try again." });
+          }
+
+          // Update the rooms.is_available field to 0 for the booked room
+          const updateSql = `
+          UPDATE rooms
+          SET is_available = 0
+          WHERE dormitory_name = ? AND room_number = ?
+        `;
+
+          db.query(
+            updateSql,
+            [dormitory_name, room_number],
+            (updateErr, updateResult) => {
+              if (updateErr) {
+                console.error("Error updating room availability:", updateErr);
+                // Handle the error appropriately, e.g., return an error response
+                return res
+                  .status(500)
+                  .json({ message: "Booking failed. Please try again." });
+              }
+
+              res.json({ message: "Booking successful" });
+            }
+          );
+        }
+      );
     }
   );
 });
