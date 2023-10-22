@@ -1,6 +1,7 @@
 const express = require("express");
 const mysql = require("mysql2");
 const session = require("express-session");
+const bodyParser = require("body-parser");
 
 const app = express();
 const port = 3000;
@@ -44,6 +45,8 @@ app.use(
 app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 app.get("/", (req, res) => {
   res.redirect("/register.html");
@@ -380,6 +383,28 @@ app.get("/api/olap/availableRoomsByDormitory", (req, res) => {
     }
     res.json(results);
   });
+});
+
+app.post("/api/addRoom", (req, res) => {
+  const { dormitory_name, room_number, size, monthly_rent } = req.body;
+  console.log("Received data:", req.body);
+  if (!dormitory_name || !room_number || !size || !monthly_rent) {
+    return res.json({ success: false, message: "Incomplete data received." });
+  }
+  const query =
+    "INSERT INTO rooms (dormitory_name, room_number, `size (sq.m)`, `monthly_rent (baht)`) VALUES (?, ?, ?, ?)";
+  db.query(
+    query,
+    [dormitory_name, room_number, size, monthly_rent],
+    (err, result) => {
+      if (err) {
+        console.error("Error inserting data:", err);
+        res.json({ success: false, message: "Database error." });
+      } else {
+        res.json({ success: true, message: "Room added successfully!" });
+      }
+    }
+  );
 });
 
 app.listen(port, () => {

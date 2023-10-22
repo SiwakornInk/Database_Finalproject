@@ -12,6 +12,44 @@
       <h1>Admin Dashboard - Dormitory Management System</h1>
     </header>
 
+    <section class="add-room-section">
+      <h2>Add Rooms</h2>
+      <form id="addRoomForm" action="/api/addRoom" method="post">
+        <div class="input-group">
+          <label for="dormitory_name">Dormitory Name:</label>
+          <input
+            type="text"
+            id="dormitory_name"
+            name="dormitory_name"
+            required
+          />
+        </div>
+
+        <div class="input-group">
+          <label for="room_number">Room Number:</label>
+          <input type="number" id="room_number" name="room_number" required />
+        </div>
+
+        <div class="input-group">
+          <label for="size">Size (sq.m):</label>
+          <input type="number" step="0.01" id="size" name="size" required />
+        </div>
+
+        <div class="input-group">
+          <label for="monthly_rent">Monthly Rent (baht):</label>
+          <input
+            type="number"
+            step="0.01"
+            id="monthly_rent"
+            name="monthly_rent"
+            required
+          />
+        </div>
+
+        <button type="submit">Add Room</button>
+      </form>
+    </section>
+
     <div class="chart-container">
       <canvas id="averageRentChart"></canvas>
     </div>
@@ -41,7 +79,7 @@
         </tbody>
       </table>
     </div>
-    
+
     <script>
       window.onload = function () {
         fetch("/api/olap/averageRentBySize")
@@ -244,6 +282,41 @@
             console.error("Failed to fetch available rooms data:", err);
           });
       };
+    </script>
+    <script>
+      document
+        .getElementById("addRoomForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const data = {
+            dormitory_name: event.target.dormitory_name.value,
+            room_number: event.target.room_number.value,
+            size: event.target.size.value,
+            monthly_rent: event.target.monthly_rent.value,
+          };
+
+          fetch("/api/addRoom", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                alert("Room added successfully!");
+                // Optionally, refresh the page or update the UI
+              } else {
+                alert("Error adding room: " + data.message);
+              }
+            })
+            .catch((err) => {
+              console.error("Error:", err);
+              alert("An error occurred while adding the room.");
+            });
+        });
     </script>
   </body>
 </html>

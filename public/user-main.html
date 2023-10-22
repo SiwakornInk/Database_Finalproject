@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="styles_user.css" />
     <title>User Dashboard</title>
   </head>
+
   <body>
     <header>
       <h1>Welcome to the Dormitory Management System</h1>
@@ -13,18 +14,43 @@
     </header>
 
     <section>
+
       <h2>Available Rooms</h2>
-      <table id="availableRooms">
-        <thead>
-          <tr>
-            <th>Dormitory Name</th>
-            <th>Room Number</th>
-            <th>Size (sq.m)</th>
-            <th>Monthly Rent (Baht/month)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="scrollable-table-container">
+        <table id="availableRooms">
+          <thead>
+            <tr>
+              <th>Dormitory Name</th>
+              <th>Room Number</th>
+              <th>Size (sq.m)</th>
+              <th>Monthly Rent (Baht/month)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <p></p>
+
+      <h2>Book a Room</h2>
+      <form id="bookingForm">
+        <div class="input-group">
+          <label for="dormitory_name">Dormitory Name:</label>
+          <select id="dormitory_name" name="dormitory_name" required></select>
+        </div>
+
+        <div class="input-group">
+          <label for="room_number">Room Number:</label>
+          <select id="room_number" name="room_number" required></select>
+        </div>
+
+        <div class="input-group">
+          <label for="start_date">Start Date:</label>
+          <input type="date" id="start_date" name="start_date" required />
+        </div>
+
+        <button type="submit">Book</button>
+      </form>
     </section>
 
     <section>
@@ -42,50 +68,71 @@
       </table>
     </section>
 
-    <div style="text-align: center; margin-top: 20px">
-      <button id="bookButton" onclick="openBookingModal()">Book a Room</button>
-    </div>
-
-    <div id="bookingModal" class="modal">
-      <div class="modal-content">
-        <span class="close-button" onclick="closeModal()">&times;</span>
-        <form id="bookingForm">
-          <label for="dormitory_name">Dormitory Name:</label>
-          <select id="dormitory_name" name="dormitory_name" required></select>
-
-          <label for="room_number">Room Number:</label>
-          <select id="room_number" name="room_number" required></select>
-
-          <label for="start_date">Start Date:</label>
-          <input type="date" id="start_date" name="start_date" required />
-
-          <button type="submit">Book</button>
-        </form>
-      </div>
-    </div>
-
-    <div id="cancelModal" class="modal">
-      <div class="modal-content">
-        <span class="close-button" onclick="closeCancelModal()">&times;</span>
-        <form id="cancelForm">
-          <label for="booking_id">Booking ID:</label>
-          <input type="number" id="booking_id" name="booking_id" required />
-
-          <button type="submit">Cancel Booking</button>
-        </form>
-      </div>
-    </div>
-
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         fetchCurrentUserName();
         fetchAvailableRooms();
-        fetchUserBookings(); // Fetch user bookings on page load
+        fetchUserBookings(); 
+        populateBookingDropdowns(); 
 
         const startDateInput = document.getElementById("start_date");
         const currentDate = new Date().toISOString().split("T")[0];
         startDateInput.min = currentDate;
       });
+
+      function populateBookingDropdowns() {
+        fetch("/api/rooms")
+          .then((response) => response.json())
+          .then((rooms) => {
+            const dormitoryDropdown = document.getElementById("dormitory_name");
+            const roomNumberDropdown = document.getElementById("room_number");
+
+            // Clear previous options
+            dormitoryDropdown.innerHTML = "";
+            roomNumberDropdown.innerHTML = "";
+
+            // Create a Set to get unique dormitory names
+            const uniqueDormitories = new Set(
+              rooms.map((room) => room.dormitory_name)
+            );
+
+            // Populate dormitory dropdown
+            uniqueDormitories.forEach((dormitory) => {
+              const option = document.createElement("option");
+              option.value = dormitory;
+              option.textContent = dormitory;
+              dormitoryDropdown.appendChild(option);
+            });
+
+            // Add event listener to dormitory dropdown to populate room numbers when a dormitory is selected
+            dormitoryDropdown.addEventListener("change", function () {
+              const selectedDormitory = this.value;
+              const availableRoomsForSelectedDormitory = rooms.filter(
+                (room) => room.dormitory_name === selectedDormitory
+              );
+
+              // Clear previous room numbers
+              roomNumberDropdown.innerHTML = "";
+
+              // Populate room number dropdown
+              availableRoomsForSelectedDormitory.forEach((room) => {
+                const option = document.createElement("option");
+                option.value = room.room_number;
+                option.textContent = room.room_number;
+                roomNumberDropdown.appendChild(option);
+              });
+            });
+
+            // Trigger the change event to populate room numbers for the first dormitory by default
+            dormitoryDropdown.dispatchEvent(new Event("change"));
+          })
+          .catch((error) => {
+            console.error(
+              "Error fetching available rooms for dropdown:",
+              error
+            );
+          });
+      }
 
       function fetchCurrentUserName() {
         fetch("/api/currentUserName")
@@ -262,8 +309,7 @@
           const result = await response.json();
           if (result.message === "Booking successful") {
             alert("Booking successful");
-            closeModal();
-            window.location.reload();
+            window.location.reload(); // This will refresh the page once
           } else {
             alert(result.message);
           }
@@ -292,8 +338,8 @@
         const result = await response.json();
         if (result.message === "Booking cancellation successful") {
           alert("Booking cancellation successful");
-          fetchUserBookings(); // Refresh the bookings table
-          fetchAvailableRooms(); // Refresh the available rooms table
+          fetchUserBookings();
+          fetchAvailableRooms();
         } else {
           alert(result.message);
         }
