@@ -116,15 +116,13 @@ app.get("/api/currentUserName", (req, res) => {
 });
 
 app.get("/api/rooms", (req, res) => {
-  const sql =
-    "SELECT `dormitory_name`, `room_number`, `size (sq.m)`, `monthly_rent (baht)`, `is_available` FROM `rooms` WHERE `is_available` = 1";
+  const sql = "SELECT `dormitory_name`, `room_number`, `size (sq.m)`, `monthly_rent (baht)`, `is_available` FROM `rooms` WHERE `is_available` = 1";
 
   db.query(sql, (err, results) => {
     if (err) {
       console.error("Error fetching rooms:", err);
       return res.status(500).send("Failed to fetch rooms.");
     }
-
     res.json(results);
   });
 });
@@ -158,31 +156,33 @@ app.post("/api/book", (req, res) => {
       }
 
       // Room is available, proceed with booking
-      const insertBookingSql = `
-      INSERT INTO bookings (username, dormitory_name, room_number, start_date, booking_time)
+      const insertBookingLogSql = `
+      INSERT INTO booking_logs (username, dormitory_name, room_number, booking_date, check_in_date)
       VALUES (?, ?, ?, ?, ?)
     `;
 
+      const checkInDate = new Date(start_date); // You might want to adjust this based on your business logic
+
       db.query(
-        insertBookingSql,
-        [username, dormitory_name, room_number, start_date, booking_time],
+        insertBookingLogSql,
+        [username, dormitory_name, room_number, booking_time, checkInDate],
         (err, result) => {
           if (err) {
-            console.error("Error inserting booking:", err);
+            console.error("Error inserting booking log:", err);
             return res
               .status(500)
               .json({ message: "Booking failed. Please try again." });
           }
 
           // Update the rooms.is_available field to 0 for the booked room
-          const updateSql = `
-          UPDATE rooms
-          SET is_available = 0
-          WHERE dormitory_name = ? AND room_number = ?
-        `;
+          const updateRoomAvailabilitySql = `
+            UPDATE rooms
+            SET is_available = 0
+            WHERE dormitory_name = ? AND room_number = ?
+          `;
 
           db.query(
-            updateSql,
+            updateRoomAvailabilitySql,
             [dormitory_name, room_number],
             (updateErr, updateResult) => {
               if (updateErr) {

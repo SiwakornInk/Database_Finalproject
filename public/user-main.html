@@ -9,6 +9,7 @@
   <body>
     <header>
       <h1>Welcome to the Dormitory Management System</h1>
+      <p>User: <span id="userNamePlaceholder"></span></p>
     </header>
 
     <section>
@@ -20,6 +21,21 @@
             <th>Room Number</th>
             <th>Size (sq.m)</th>
             <th>Monthly Rent (Baht/month)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Your Bookings</h2>
+      <table id="userBookings">
+        <thead>
+          <tr>
+            <th>Dormitory Name</th>
+            <th>Room Number</th>
+            <th>Start Date</th>
+            <th>Cancel</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -48,15 +64,26 @@
       </div>
     </div>
 
+    <div id="cancelModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button" onclick="closeCancelModal()">&times;</span>
+        <form id="cancelForm">
+          <label for="booking_id">Booking ID:</label>
+          <input type="number" id="booking_id" name="booking_id" required />
+
+          <button type="submit">Cancel Booking</button>
+        </form>
+      </div>
+    </div>
+
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         fetchCurrentUserName();
         fetchAvailableRooms();
+        fetchUserBookings(); // Fetch user bookings on page load
 
         const startDateInput = document.getElementById("start_date");
-
         const currentDate = new Date().toISOString().split("T")[0];
-
         startDateInput.min = currentDate;
       });
 
@@ -67,7 +94,7 @@
             const userNameElement = document.getElementById(
               "userNamePlaceholder"
             );
-            userNameElement.textContent = data.userName; // Use data.userName to set the correct username
+            userNameElement.textContent = data.userName;
           })
           .catch((error) => {
             console.error("Error fetching user name:", error);
@@ -78,13 +105,12 @@
         fetch("/api/rooms")
           .then((response) => response.json())
           .then((rooms) => {
+            console.log("Received rooms data:", rooms); // Log the received data
+
             const tableBody = document
               .getElementById("availableRooms")
               .querySelector("tbody");
             tableBody.innerHTML = "";
-
-            const uniqueDorms = new Set();
-            const uniqueRooms = new Set();
 
             rooms.forEach((room) => {
               const values = [
@@ -94,32 +120,36 @@
                 room["monthly_rent (baht)"],
               ];
               const row = createTableRow(values);
-
-              uniqueDorms.add(room["dormitory_name"]);
-              uniqueRooms.add(room["room_number"]);
-
               tableBody.appendChild(row);
-            });
-
-            const dormSelect = document.getElementById("dormitory_name");
-            const roomSelect = document.getElementById("room_number");
-
-            uniqueDorms.forEach((dorm) => {
-              const dormOption = document.createElement("option");
-              dormOption.value = dorm;
-              dormOption.textContent = dorm;
-              dormSelect.appendChild(dormOption);
-            });
-
-            uniqueRooms.forEach((room) => {
-              const roomOption = document.createElement("option");
-              roomOption.value = room;
-              roomOption.textContent = room;
-              roomSelect.appendChild(roomOption);
             });
           })
           .catch((error) => {
-            console.error("Error fetching rooms:", error);
+            console.error("Error fetching available rooms:", error);
+          });
+      }
+
+      function fetchUserBookings() {
+        fetch("/api/userBookings")
+          .then((response) => response.json())
+          .then((bookings) => {
+            const tableBody = document
+              .getElementById("userBookings")
+              .querySelector("tbody");
+            tableBody.innerHTML = "";
+
+            bookings.forEach((booking) => {
+              const values = [
+                booking["dormitory_name"],
+                booking["room_number"],
+                booking["start_date"],
+                `<button onclick="cancelBooking(${booking["booking_id"]})">Cancel</button>`,
+              ];
+              const row = createTableRow(values);
+              tableBody.appendChild(row);
+            });
+          })
+          .catch((error) => {
+            console.error("Error fetching user bookings:", error);
           });
       }
 
@@ -136,6 +166,59 @@
       function openBookingModal() {
         const modal = document.getElementById("bookingModal");
         modal.style.display = "block";
+
+        // Fetch available rooms when the modal is opened
+        fetch("/api/rooms")
+          .then((response) => response.json())
+          .then((rooms) => {
+            const dormitoryDropdown = document.getElementById("dormitory_name");
+            const roomNumberDropdown = document.getElementById("room_number");
+
+            // Clear previous options
+            dormitoryDropdown.innerHTML = "";
+            roomNumberDropdown.innerHTML = "";
+
+            // Create a Set to get unique dormitory names
+            const uniqueDormitories = new Set(
+              rooms.map((room) => room.dormitory_name)
+            );
+
+            // Populate dormitory dropdown
+            uniqueDormitories.forEach((dormitory) => {
+              const option = document.createElement("option");
+              option.value = dormitory;
+              option.textContent = dormitory;
+              dormitoryDropdown.appendChild(option);
+            });
+
+            // Add event listener to dormitory dropdown to populate room numbers when a dormitory is selected
+            dormitoryDropdown.addEventListener("change", function () {
+              const selectedDormitory = this.value;
+              const availableRoomsForSelectedDormitory = rooms.filter(
+                (room) => room.dormitory_name === selectedDormitory
+              );
+
+              // Clear previous room numbers
+              roomNumberDropdown.innerHTML = "";
+
+              // Populate room number dropdown
+              availableRoomsForSelectedDormitory.forEach((room) => {
+                const option = document.createElement("option");
+                option.value = room.room_number;
+                option.textContent = room.room_number;
+                roomNumberDropdown.appendChild(option);
+              });
+            });
+
+            // Trigger the change event to populate room numbers for the first dormitory by default
+            dormitoryDropdown.dispatchEvent(new Event("change"));
+          })
+          .catch((error) => {
+            console.error(
+              "Error fetching available rooms for dropdown:",
+              error
+            );
+          });
       }
 
       document
@@ -166,7 +249,6 @@
           if (result.message === "Booking successful") {
             alert("Booking successful");
             closeModal();
-            // Reload the page after a successful booking
             window.location.reload();
           } else {
             alert(result.message);
@@ -177,6 +259,43 @@
         const modal = document.getElementById("bookingModal");
         modal.style.display = "none";
       }
+
+      function openCancelModal() {
+        const modal = document.getElementById("cancelModal");
+        modal.style.display = "block";
+      }
+
+      function closeCancelModal() {
+        const modal = document.getElementById("cancelModal");
+        modal.style.display = "none";
+      }
+
+      async function cancelBooking(bookingId) {
+        openCancelModal();
+        document.getElementById("booking_id").value = bookingId;
+      }
+
+      document
+        .getElementById("cancelForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+
+          const bookingId = formData.get("booking_id");
+
+          const response = await fetch(`/api/cancelBooking/${bookingId}`, {
+            method: "POST",
+          });
+
+          const result = await response.json();
+          if (result.message === "Booking cancellation successful") {
+            alert("Booking cancellation successful");
+            closeCancelModal();
+            window.location.reload();
+          } else {
+            alert(result.message);
+          }
+        });
     </script>
   </body>
 </html>
