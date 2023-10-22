@@ -14,7 +14,6 @@
     </header>
 
     <section>
-
       <h2>Available Rooms</h2>
       <div class="scrollable-table-container">
         <table id="availableRooms">
@@ -72,8 +71,8 @@
       document.addEventListener("DOMContentLoaded", function () {
         fetchCurrentUserName();
         fetchAvailableRooms();
-        fetchUserBookings(); 
-        populateBookingDropdowns(); 
+        fetchUserBookings();
+        populateBookingDropdowns();
 
         const startDateInput = document.getElementById("start_date");
         const currentDate = new Date().toISOString().split("T")[0];
@@ -191,7 +190,21 @@
               ["dormitory_name", "room_number", "check_in_date"].forEach(
                 (key) => {
                   const cell = document.createElement("td");
-                  cell.textContent = booking[key];
+                  if (key === "check_in_date") {
+                    const checkInDate = new Date(booking[key]);
+                    const options = {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    };
+                    const formattedDate = checkInDate.toLocaleDateString(
+                      undefined,
+                      options
+                    );
+                    cell.textContent = formattedDate;
+                  } else {
+                    cell.textContent = booking[key];
+                  }
                   row.appendChild(cell);
                 }
               );
