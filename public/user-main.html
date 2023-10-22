@@ -138,13 +138,27 @@
             tableBody.innerHTML = "";
 
             bookings.forEach((booking) => {
-              const values = [
-                booking["dormitory_name"],
-                booking["room_number"],
-                booking["start_date"],
-                `<button onclick="cancelBooking(${booking["booking_id"]})">Cancel</button>`,
-              ];
-              const row = createTableRow(values);
+              const row = document.createElement("tr");
+
+              // Add dormitory_name, room_number, and check_in_date
+              ["dormitory_name", "room_number", "check_in_date"].forEach(
+                (key) => {
+                  const cell = document.createElement("td");
+                  cell.textContent = booking[key];
+                  row.appendChild(cell);
+                }
+              );
+
+              // Add cancel button
+              const buttonCell = document.createElement("td");
+              const button = document.createElement("button");
+              button.textContent = "Cancel";
+              button.addEventListener("click", () =>
+                cancelBooking(booking["log_id"])
+              );
+              buttonCell.appendChild(button);
+              row.appendChild(buttonCell);
+
               tableBody.appendChild(row);
             });
           })
@@ -271,8 +285,18 @@
       }
 
       async function cancelBooking(bookingId) {
-        openCancelModal();
-        document.getElementById("booking_id").value = bookingId;
+        const response = await fetch(`/api/cancelBooking/${bookingId}`, {
+          method: "POST",
+        });
+
+        const result = await response.json();
+        if (result.message === "Booking cancellation successful") {
+          alert("Booking cancellation successful");
+          fetchUserBookings(); // Refresh the bookings table
+          fetchAvailableRooms(); // Refresh the available rooms table
+        } else {
+          alert(result.message);
+        }
       }
 
       document

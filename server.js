@@ -202,6 +202,90 @@ app.post("/api/book", (req, res) => {
   );
 });
 
+app.get("/api/userBookings", (req, res) => {
+  if (!req.session || !req.session.userName) {
+    return res.status(401).send("User not logged in");
+  }
+
+  const sql = `
+    SELECT b.log_id, b.dormitory_name, b.room_number, b.check_in_date
+    FROM booking_logs b
+    WHERE b.username = ? AND b.is_active = 1
+  `;
+
+  db.query(sql, [req.session.userName], (err, results) => {
+    if (err) {
+      console.error("Error fetching user bookings:", err);
+      return res.status(500).send("Failed to fetch bookings.");
+    }
+    res.json(results);
+  });
+});
+
+app.post("/api/cancelBooking/:bookingId", (req, res) => {
+  const bookingId = req.params.bookingId;
+
+  // Start a transaction to ensure data consistency
+  db.beginTransaction(err => {
+      if (err) {
+          console.error("Transaction error:", err);
+          return res.status(500).json({ message: "Cancellation failed. Please try again." });
+      }
+
+      // Update is_active in booking_logs
+      db.query("UPDATE booking_logs SET is_active = 0 WHERE log_id = ?", [bookingId], (err, result) => {
+          if (err) {
+              return db.rollback(() => {
+                  console.error("Error updating booking_logs:", err);
+                  res.status(500).json({ message: "Cancellation failed. Please try again." });
+              });
+          }
+
+          // Insert into cancelling_logs
+          const now = new Date();
+          db.query(
+              "INSERT INTO cancelling_logs (username, dormitory_name, room_number, cancellation_date) SELECT username, dormitory_name, room_number, ? FROM booking_logs WHERE log_id = ?",
+              [now, bookingId],
+              (err, result) => {
+                  if (err) {
+                      return db.rollback(() => {
+                          console.error("Error inserting into cancelling_logs:", err);
+                          res.status(500).json({ message: "Cancellation failed. Please try again." });
+                      });
+                  }
+
+                  // Update is_available in rooms
+                  db.query(
+                      "UPDATE rooms r JOIN booking_logs b ON r.dormitory_name = b.dormitory_name AND r.room_number = b.room_number SET r.is_available = 1 WHERE b.log_id = ?",
+                      [bookingId],
+                      (err, result) => {
+                          if (err) {
+                              return db.rollback(() => {
+                                  console.error("Error updating rooms availability:", err);
+                                  res.status(500).json({ message: "Cancellation failed. Please try again." });
+                              });
+                          }
+
+                          // Commit the transaction
+                          db.commit(err => {
+                              if (err) {
+                                  return db.rollback(() => {
+                                      console.error("Error committing transaction:", err);
+                                      res.status(500).json({ message: "Cancellation failed. Please try again." });
+                                  });
+                              }
+
+                              res.json({ message: "Booking cancellation successful" });
+                          });
+                      }
+                  );
+              }
+          );
+      });
+  });
+});
+
+
 app.listen(port, () => {
   console.log(`Server started on http://localhost:${port}`);
 });
