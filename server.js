@@ -109,7 +109,6 @@ app.post("/login", (req, res) => {
           .json({ message: "Invalid username or password." });
       }
 
-      // Set the session variable here
       req.session.userName = results[0].username;
 
       const userRole = results[0].role;
