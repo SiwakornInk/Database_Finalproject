@@ -148,9 +148,8 @@ app.get("/api/rooms", (req, res) => {
 app.post("/api/book", (req, res) => {
   const { dormitory_name, room_number, start_date } = req.body;
   const booking_time = new Date();
-  const username = req.session.userName; // Use the correct username from the session
+  const username = req.session.userName; 
 
-  // Check if the room is available
   const checkRoomAvailabilitySql = `
     SELECT is_available
     FROM rooms
@@ -169,17 +168,15 @@ app.post("/api/book", (req, res) => {
       }
 
       if (checkResults.length === 0 || checkResults[0].is_available !== 1) {
-        // Room is not available, return an error message
         return res.status(400).json({ message: "Room is not available." });
       }
 
-      // Room is available, proceed with booking
       const insertBookingLogSql = `
       INSERT INTO booking_logs (username, dormitory_name, room_number, booking_date, check_in_date)
       VALUES (?, ?, ?, ?, ?)
     `;
 
-      const checkInDate = new Date(start_date); // You might want to adjust this based on your business logic
+      const checkInDate = new Date(start_date);
 
       db.query(
         insertBookingLogSql,
@@ -192,7 +189,6 @@ app.post("/api/book", (req, res) => {
               .json({ message: "Booking failed. Please try again." });
           }
 
-          // Update the rooms.is_available field to 0 for the booked room
           const updateRoomAvailabilitySql = `
             UPDATE rooms
             SET is_available = 0
@@ -205,7 +201,6 @@ app.post("/api/book", (req, res) => {
             (updateErr, updateResult) => {
               if (updateErr) {
                 console.error("Error updating room availability:", updateErr);
-                // Handle the error appropriately, e.g., return an error response
                 return res
                   .status(500)
                   .json({ message: "Booking failed. Please try again." });
@@ -243,7 +238,6 @@ app.get("/api/userBookings", (req, res) => {
 app.post("/api/cancelBooking/:bookingId", (req, res) => {
   const bookingId = req.params.bookingId;
 
-  // Start a transaction to ensure data consistency
   db.beginTransaction((err) => {
     if (err) {
       console.error("Transaction error:", err);
@@ -252,7 +246,6 @@ app.post("/api/cancelBooking/:bookingId", (req, res) => {
         .json({ message: "Cancellation failed. Please try again." });
     }
 
-    // Update is_active in booking_logs
     db.query(
       "UPDATE booking_logs SET is_active = 0 WHERE log_id = ?",
       [bookingId],
@@ -266,7 +259,6 @@ app.post("/api/cancelBooking/:bookingId", (req, res) => {
           });
         }
 
-        // Insert into cancelling_logs
         const now = new Date();
         db.query(
           "INSERT INTO cancelling_logs (username, dormitory_name, room_number, cancellation_date) SELECT username, dormitory_name, room_number, ? FROM booking_logs WHERE log_id = ?",
@@ -281,7 +273,6 @@ app.post("/api/cancelBooking/:bookingId", (req, res) => {
               });
             }
 
-            // Update is_available in rooms
             db.query(
               "UPDATE rooms r JOIN booking_logs b ON r.dormitory_name = b.dormitory_name AND r.room_number = b.room_number SET r.is_available = 1 WHERE b.log_id = ?",
               [bookingId],
@@ -295,7 +286,6 @@ app.post("/api/cancelBooking/:bookingId", (req, res) => {
                   });
                 }
 
-                // Commit the transaction
                 db.commit((err) => {
                   if (err) {
                     return db.rollback(() => {

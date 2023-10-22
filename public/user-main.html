@@ -86,16 +86,13 @@
             const dormitoryDropdown = document.getElementById("dormitory_name");
             const roomNumberDropdown = document.getElementById("room_number");
 
-            // Clear previous options
             dormitoryDropdown.innerHTML = "";
             roomNumberDropdown.innerHTML = "";
 
-            // Create a Set to get unique dormitory names
             const uniqueDormitories = new Set(
               rooms.map((room) => room.dormitory_name)
             );
 
-            // Populate dormitory dropdown
             uniqueDormitories.forEach((dormitory) => {
               const option = document.createElement("option");
               option.value = dormitory;
@@ -103,17 +100,14 @@
               dormitoryDropdown.appendChild(option);
             });
 
-            // Add event listener to dormitory dropdown to populate room numbers when a dormitory is selected
             dormitoryDropdown.addEventListener("change", function () {
               const selectedDormitory = this.value;
               const availableRoomsForSelectedDormitory = rooms.filter(
                 (room) => room.dormitory_name === selectedDormitory
               );
 
-              // Clear previous room numbers
               roomNumberDropdown.innerHTML = "";
 
-              // Populate room number dropdown
               availableRoomsForSelectedDormitory.forEach((room) => {
                 const option = document.createElement("option");
                 option.value = room.room_number;
@@ -122,7 +116,6 @@
               });
             });
 
-            // Trigger the change event to populate room numbers for the first dormitory by default
             dormitoryDropdown.dispatchEvent(new Event("change"));
           })
           .catch((error) => {
@@ -151,7 +144,7 @@
         fetch("/api/rooms")
           .then((response) => response.json())
           .then((rooms) => {
-            console.log("Received rooms data:", rooms); // Log the received data
+            console.log("Received rooms data:", rooms); 
 
             const tableBody = document
               .getElementById("availableRooms")
@@ -186,7 +179,6 @@
             bookings.forEach((booking) => {
               const row = document.createElement("tr");
 
-              // Add dormitory_name, room_number, and check_in_date
               ["dormitory_name", "room_number", "check_in_date"].forEach(
                 (key) => {
                   const cell = document.createElement("td");
@@ -209,7 +201,6 @@
                 }
               );
 
-              // Add cancel button
               const buttonCell = document.createElement("td");
               const button = document.createElement("button");
               button.textContent = "Cancel";
@@ -241,23 +232,19 @@
         const modal = document.getElementById("bookingModal");
         modal.style.display = "block";
 
-        // Fetch available rooms when the modal is opened
         fetch("/api/rooms")
           .then((response) => response.json())
           .then((rooms) => {
             const dormitoryDropdown = document.getElementById("dormitory_name");
             const roomNumberDropdown = document.getElementById("room_number");
 
-            // Clear previous options
             dormitoryDropdown.innerHTML = "";
             roomNumberDropdown.innerHTML = "";
 
-            // Create a Set to get unique dormitory names
             const uniqueDormitories = new Set(
               rooms.map((room) => room.dormitory_name)
             );
 
-            // Populate dormitory dropdown
             uniqueDormitories.forEach((dormitory) => {
               const option = document.createElement("option");
               option.value = dormitory;
@@ -265,17 +252,14 @@
               dormitoryDropdown.appendChild(option);
             });
 
-            // Add event listener to dormitory dropdown to populate room numbers when a dormitory is selected
             dormitoryDropdown.addEventListener("change", function () {
               const selectedDormitory = this.value;
               const availableRoomsForSelectedDormitory = rooms.filter(
                 (room) => room.dormitory_name === selectedDormitory
               );
 
-              // Clear previous room numbers
               roomNumberDropdown.innerHTML = "";
 
-              // Populate room number dropdown
               availableRoomsForSelectedDormitory.forEach((room) => {
                 const option = document.createElement("option");
                 option.value = room.room_number;
@@ -284,7 +268,6 @@
               });
             });
 
-            // Trigger the change event to populate room numbers for the first dormitory by default
             dormitoryDropdown.dispatchEvent(new Event("change"));
           })
           .catch((error) => {
@@ -322,7 +305,7 @@
           const result = await response.json();
           if (result.message === "Booking successful") {
             alert("Booking successful");
-            window.location.reload(); // This will refresh the page once
+            window.location.reload(); 
           } else {
             alert(result.message);
           }

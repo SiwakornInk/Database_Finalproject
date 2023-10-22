@@ -107,7 +107,7 @@ button[type="submit"]:hover {
 }
 
 .scrollable-table-container {
-  max-height: 300px; /* You can adjust this value based on your preference */
+  max-height: 300px; 
   overflow-y: auto;
   border: 1px solid #ddd;
   border-radius: 5px;
