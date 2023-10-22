@@ -3,39 +3,58 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles_admin.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>Admin Dashboard</title>
   </head>
   <body>
     <header>
       <h1>Admin Dashboard - Dormitory Management System</h1>
     </header>
-
-    <section>
-      <h2>Manage Rooms</h2>
-      <button onclick="addRoom()">Add New Room</button>
-      <table id="manageRooms">
-      </table>
-    </section>
-
-    <section>
-      <h2>All Bookings</h2>
-      <table id="allBookings">
-      </table>
-    </section>
     
-    <section>
-      <h2>Generate Reports</h2>
-      <button onclick="generateBookingReport()">Booking Report</button>
-      <button onclick="generateCancellationReport()">
-        Cancellation Report
-      </button>
-      <button onclick="generateTenantReport()">Tenant Report</button>
-      <button onclick="generateRoomAvailabilityReport()">
-        Room Availability Report
-      </button>
-    </section>
+    <div class="chart-container">
+      <canvas id="averageRentChart"></canvas>
+    </div>
 
-    <script src="admin-script.js"></script>
+    <script>
+      window.onload = function () {
+        fetch("/api/olap/averageRentBySize")
+          .then((response) => response.json())
+          .then((data) => {
+            const ctx = document
+              .getElementById("averageRentChart")
+              .getContext("2d");
+
+            const sizes = data.map((item) => item.Size);
+            const avgRents = data.map((item) => item.Avg_Rent);
+
+            new Chart(ctx, {
+              type: "line",
+              data: {
+                labels: sizes,
+                datasets: [
+                  {
+                    label: "Average Monthly Rent",
+                    data: avgRents,
+                    backgroundColor: "rgba(75, 192, 192, 0.2)", // light blue
+                    borderColor: "rgba(75, 192, 192, 1)", // blue
+                    borderWidth: 1,
+                  },
+                ],
+              },
+              options: {
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                  },
+                },
+              },
+            });
+          })
+          .catch((err) => {
+            console.error("Failed to fetch OLAP data:", err);
+          });
+      };
+    </script>
   </body>
 </html>

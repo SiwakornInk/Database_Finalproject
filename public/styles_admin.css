@@ -1,0 +1,36 @@
+/* Resetting some default styles */
+body,
+h1,
+h2 {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background-color: #f4f4f4;
+  color: #333;
+  line-height: 1.6;
+}
+
+header {
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.chart-container {
+  width: 80%; /* Adjust as needed */
+  max-width: 600px; /* Maximum width for the container */
+  margin: 2rem auto; /* Centers the container */
+  background-color: #fff; /* White background for the container */
+  padding: 1rem;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* A subtle shadow for depth */
+}
+
+canvas#averageRentChart {
+  width: 100% !important;
+  height: auto !important;
+}

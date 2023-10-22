@@ -19,6 +19,20 @@ db.connect((err) => {
   console.log("Connected to database.");
 });
 
+const db_olap = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  database: "dormitory_olap",
+});
+
+db_olap.connect((err) => {
+  if (err) {
+    console.error("Failed to connect to OLAP database:", err);
+    process.exit(1);
+  }
+  console.log("Connected to OLAP database.");
+});
+
 app.use(
   session({
     secret: "Secret",
@@ -116,7 +130,8 @@ app.get("/api/currentUserName", (req, res) => {
 });
 
 app.get("/api/rooms", (req, res) => {
-  const sql = "SELECT `dormitory_name`, `room_number`, `size (sq.m)`, `monthly_rent (baht)`, `is_available` FROM `rooms` WHERE `is_available` = 1";
+  const sql =
+    "SELECT `dormitory_name`, `room_number`, `size (sq.m)`, `monthly_rent (baht)`, `is_available` FROM `rooms` WHERE `is_available` = 1";
 
   db.query(sql, (err, results) => {
     if (err) {
@@ -226,65 +241,91 @@ app.post("/api/cancelBooking/:bookingId", (req, res) => {
   const bookingId = req.params.bookingId;
 
   // Start a transaction to ensure data consistency
-  db.beginTransaction(err => {
-      if (err) {
-          console.error("Transaction error:", err);
-          return res.status(500).json({ message: "Cancellation failed. Please try again." });
-      }
+  db.beginTransaction((err) => {
+    if (err) {
+      console.error("Transaction error:", err);
+      return res
+        .status(500)
+        .json({ message: "Cancellation failed. Please try again." });
+    }
 
-      // Update is_active in booking_logs
-      db.query("UPDATE booking_logs SET is_active = 0 WHERE log_id = ?", [bookingId], (err, result) => {
-          if (err) {
+    // Update is_active in booking_logs
+    db.query(
+      "UPDATE booking_logs SET is_active = 0 WHERE log_id = ?",
+      [bookingId],
+      (err, result) => {
+        if (err) {
+          return db.rollback(() => {
+            console.error("Error updating booking_logs:", err);
+            res
+              .status(500)
+              .json({ message: "Cancellation failed. Please try again." });
+          });
+        }
+
+        // Insert into cancelling_logs
+        const now = new Date();
+        db.query(
+          "INSERT INTO cancelling_logs (username, dormitory_name, room_number, cancellation_date) SELECT username, dormitory_name, room_number, ? FROM booking_logs WHERE log_id = ?",
+          [now, bookingId],
+          (err, result) => {
+            if (err) {
               return db.rollback(() => {
-                  console.error("Error updating booking_logs:", err);
-                  res.status(500).json({ message: "Cancellation failed. Please try again." });
+                console.error("Error inserting into cancelling_logs:", err);
+                res
+                  .status(500)
+                  .json({ message: "Cancellation failed. Please try again." });
               });
-          }
+            }
 
-          // Insert into cancelling_logs
-          const now = new Date();
-          db.query(
-              "INSERT INTO cancelling_logs (username, dormitory_name, room_number, cancellation_date) SELECT username, dormitory_name, room_number, ? FROM booking_logs WHERE log_id = ?",
-              [now, bookingId],
+            // Update is_available in rooms
+            db.query(
+              "UPDATE rooms r JOIN booking_logs b ON r.dormitory_name = b.dormitory_name AND r.room_number = b.room_number SET r.is_available = 1 WHERE b.log_id = ?",
+              [bookingId],
               (err, result) => {
+                if (err) {
+                  return db.rollback(() => {
+                    console.error("Error updating rooms availability:", err);
+                    res.status(500).json({
+                      message: "Cancellation failed. Please try again.",
+                    });
+                  });
+                }
+
+                // Commit the transaction
+                db.commit((err) => {
                   if (err) {
-                      return db.rollback(() => {
-                          console.error("Error inserting into cancelling_logs:", err);
-                          res.status(500).json({ message: "Cancellation failed. Please try again." });
+                    return db.rollback(() => {
+                      console.error("Error committing transaction:", err);
+                      res.status(500).json({
+                        message: "Cancellation failed. Please try again.",
                       });
+                    });
                   }
 
-                  // Update is_available in rooms
-                  db.query(
-                      "UPDATE rooms r JOIN booking_logs b ON r.dormitory_name = b.dormitory_name AND r.room_number = b.room_number SET r.is_available = 1 WHERE b.log_id = ?",
-                      [bookingId],
-                      (err, result) => {
-                          if (err) {
-                              return db.rollback(() => {
-                                  console.error("Error updating rooms availability:", err);
-                                  res.status(500).json({ message: "Cancellation failed. Please try again." });
-                              });
-                          }
-
-                          // Commit the transaction
-                          db.commit(err => {
-                              if (err) {
-                                  return db.rollback(() => {
-                                      console.error("Error committing transaction:", err);
-                                      res.status(500).json({ message: "Cancellation failed. Please try again." });
-                                  });
-                              }
-
-                              res.json({ message: "Booking cancellation successful" });
-                          });
-                      }
-                  );
+                  res.json({ message: "Booking cancellation successful" });
+                });
               }
-          );
-      });
+            );
+          }
+        );
+      }
+    );
   });
 });
 
+app.get("/api/olap/averageRentBySize", (req, res) => {
+  db_olap.query(
+    "SELECT Size, AVG(Monthly_Rent) AS Avg_Rent FROM Room_Dimension GROUP BY Size",
+    (err, results) => {
+      if (err) {
+        console.error("Error fetching average rent by size:", err);
+        return res.status(500).send("Failed to fetch data.");
+      }
+      res.json(results);
+    }
+  );
+});
 
 app.listen(port, () => {
   console.log(`Server started on http://localhost:${port}`);
