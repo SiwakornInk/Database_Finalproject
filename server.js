@@ -315,16 +315,71 @@ app.post("/api/cancelBooking/:bookingId", (req, res) => {
 });
 
 app.get("/api/olap/averageRentBySize", (req, res) => {
-  db_olap.query(
-    "SELECT Size, AVG(Monthly_Rent) AS Avg_Rent FROM Room_Dimension GROUP BY Size",
-    (err, results) => {
-      if (err) {
-        console.error("Error fetching average rent by size:", err);
-        return res.status(500).send("Failed to fetch data.");
-      }
-      res.json(results);
+  const sql = `SELECT Size, AVG(Monthly_Rent) AS Avg_Rent FROM Room_Dimension GROUP BY Size;`;
+  db_olap.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching averageRentBySize:", err);
+      return res.status(500).send("Failed to fetch data.");
     }
-  );
+    res.json(results);
+  });
+});
+
+app.get("/api/olap/bookingsByDormitory", (req, res) => {
+  const sql = `
+    SELECT rd.Dormitory_Name, COUNT(df.Fact_ID) AS Booking_Count
+    FROM Dormitory_Facts df
+    JOIN Room_Dimension rd ON df.Room_Dim_ID = rd.Room_Dim_ID
+    WHERE df.Number_of_Bookings > 0
+    GROUP BY rd.Dormitory_Name;`;
+  db_olap.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching bookingsByDormitory:", err);
+      return res.status(500).send("Failed to fetch data.");
+    }
+    res.json(results);
+  });
+});
+
+app.get("/api/olap/bookingStatusCount", (req, res) => {
+  const sql = `
+  SELECT Status, COUNT(*) as Count FROM  Booking_Dimension GROUP BY  Status;`;
+  db_olap.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching bookingStatusCount:", err);
+      return res.status(500).send("Failed to fetch data.");
+    }
+    res.json(results);
+  });
+});
+
+app.get("/api/olap/cumulativeBookingOverTime", (req, res) => {
+  const sql = `
+  SELECT 
+    DATE(Booking_Date) AS Booking_Date, 
+    COUNT(*) AS Cumulative_Booking_Count FROM  Booking_Dimension 
+    GROUP BY DATE(Booking_Date)
+    ORDER BY DATE(Booking_Date);`;
+  db_olap.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching cumulativeBookingOverTime:", err);
+      return res.status(500).send("Failed to fetch data.");
+    }
+    res.json(results);
+  });
+});
+
+app.get("/api/olap/availableRoomsByDormitory", (req, res) => {
+  const sql = `
+  SELECT Dormitory_Name, SUM(CASE WHEN Availability = 1 THEN 1 ELSE 0 END) AS Available_Room_Count
+  FROM Room_Dimension GROUP BY Dormitory_Name;`;
+  db_olap.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching availableRoomsTable:", err);
+      return res.status(500).send("Failed to fetch data.");
+    }
+    res.json(results);
+  });
 });
 
 app.listen(port, () => {

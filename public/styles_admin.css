@@ -1,36 +1,53 @@
-/* Resetting some default styles */
-body,
-h1,
-h2 {
+body, h1 {
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
 }
 
 body {
-  background-color: #f4f4f4;
-  color: #333;
-  line-height: 1.6;
+  background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
 }
 
 header {
   background-color: #333;
-  color: #fff;
+  color: white;
+  padding: 20px;
+  width: 100%; /* Set to full width */
   text-align: center;
-  padding: 1rem 0;
-}
-
-.chart-container {
-  width: 80%; /* Adjust as needed */
-  max-width: 600px; /* Maximum width for the container */
-  margin: 2rem auto; /* Centers the container */
-  background-color: #fff; /* White background for the container */
-  padding: 1rem;
   border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* A subtle shadow for depth */
+  margin-top: 0; /* Remove top margin */
+  margin-bottom: 20px;
 }
 
-canvas#averageRentChart {
-  width: 100% !important;
-  height: auto !important;
+.chart-container, .table-container {
+  background: white;
+  padding: 15px;
+  width: 80%;
+  margin: 15px 0;
+  border-radius: 5px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+@media (max-width: 768px) {
+  header, .chart-container, .table-container {
+      width: 95%;
+  }
 }
