@@ -38,13 +38,21 @@ table {
 }
 
 th, td {
-  padding: 8px 12px;
+  padding: 16px;
   border-bottom: 1px solid #ddd;
+  text-align: center;
+  font-size: 18px;
 }
 
 th {
-  background-color: #f2f2f2;
+  background-color: #007BFF;
+  color: white;
 }
+
+tr:nth-child(even) {
+  background-color: #f5f5f5; 
+}
+
 
 @media (max-width: 768px) {
   header, .chart-container, .table-container {

@@ -23,7 +23,7 @@ db.connect((err) => {
 const db_olap = mysql.createConnection({
   host: "localhost",
   user: "root",
-  database: "dormitory_olap",
+  database: "olap_dormitory",
 });
 
 db_olap.connect((err) => {
@@ -147,7 +147,7 @@ app.get("/api/rooms", (req, res) => {
 app.post("/api/book", (req, res) => {
   const { dormitory_name, room_number, start_date } = req.body;
   const booking_time = new Date();
-  const username = req.session.userName; 
+  const username = req.session.userName;
 
   const checkRoomAvailabilitySql = `
     SELECT is_available
@@ -307,7 +307,10 @@ app.post("/api/cancelBooking/:bookingId", (req, res) => {
 });
 
 app.get("/api/olap/averageRentBySize", (req, res) => {
-  const sql = `SELECT Size, AVG(Monthly_Rent) AS Avg_Rent FROM Room_Dimension GROUP BY Size;`;
+  const sql = `SELECT r.Size, AVG(r.MonthlyRent) as AverageMonthlyRent
+  FROM DimRoom as r
+  GROUP BY r.Size
+  ORDER BY r.Size;`;
   db_olap.query(sql, (err, results) => {
     if (err) {
       console.error("Error fetching averageRentBySize:", err);
@@ -319,11 +322,12 @@ app.get("/api/olap/averageRentBySize", (req, res) => {
 
 app.get("/api/olap/bookingsByDormitory", (req, res) => {
   const sql = `
-    SELECT rd.Dormitory_Name, COUNT(df.Fact_ID) AS Booking_Count
-    FROM Dormitory_Facts df
-    JOIN Room_Dimension rd ON df.Room_Dim_ID = rd.Room_Dim_ID
-    WHERE df.Number_of_Bookings > 0
-    GROUP BY rd.Dormitory_Name;`;
+  SELECT r.DormitoryName, COUNT(IsActive) as BookingCount
+FROM FactBooking as b
+NATURAL JOIN DimRoom as r
+where IsActive = 1
+GROUP BY r.DormitoryName
+ORDER BY r.DormitoryName;`;
   db_olap.query(sql, (err, results) => {
     if (err) {
       console.error("Error fetching bookingsByDormitory:", err);
@@ -335,7 +339,10 @@ app.get("/api/olap/bookingsByDormitory", (req, res) => {
 
 app.get("/api/olap/bookingStatusCount", (req, res) => {
   const sql = `
-  SELECT Status, COUNT(*) as Count FROM  Booking_Dimension GROUP BY  Status;`;
+  SELECT 'Booking' as Status, COUNT(BookingID) as Count FROM FactBooking
+UNION ALL
+SELECT 'Cancellation' as Status, COUNT(CancellationID) as Count FROM FactCancellation;
+`;
   db_olap.query(sql, (err, results) => {
     if (err) {
       console.error("Error fetching bookingStatusCount:", err);
@@ -347,11 +354,23 @@ app.get("/api/olap/bookingStatusCount", (req, res) => {
 
 app.get("/api/olap/cumulativeBookingOverTime", (req, res) => {
   const sql = `
-  SELECT 
-    DATE(Booking_Date) AS Booking_Date, 
-    COUNT(*) AS Cumulative_Booking_Count FROM  Booking_Dimension 
-    GROUP BY DATE(Booking_Date)
-    ORDER BY DATE(Booking_Date);`;
+  SELECT d.Date,
+       COALESCE(b.BookingCount, 0) as BookingCount, 
+       COALESCE(c.CancellationCount, 0) as CancellationCount
+FROM DimDate as d
+LEFT JOIN (
+    SELECT BookingDateID, COUNT(BookingID) as BookingCount
+    FROM FactBooking
+    GROUP BY BookingDateID
+) as b ON d.DateID = b.BookingDateID
+LEFT JOIN (
+    SELECT CancellationDateID, COUNT(CancellationID) as CancellationCount
+    FROM FactCancellation
+    GROUP BY CancellationDateID
+) as c ON d.DateID = c.CancellationDateID
+GROUP BY d.Date
+ORDER BY d.Date;
+`;
   db_olap.query(sql, (err, results) => {
     if (err) {
       console.error("Error fetching cumulativeBookingOverTime:", err);
@@ -363,8 +382,11 @@ app.get("/api/olap/cumulativeBookingOverTime", (req, res) => {
 
 app.get("/api/olap/availableRoomsByDormitory", (req, res) => {
   const sql = `
-  SELECT Dormitory_Name, SUM(CASE WHEN Availability = 1 THEN 1 ELSE 0 END) AS Available_Room_Count
-  FROM Room_Dimension GROUP BY Dormitory_Name;`;
+  SELECT DormitoryName, COUNT(RoomID) as AvailableRooms
+FROM DimRoom
+WHERE IsAvailable = 1
+GROUP BY DormitoryName
+ORDER BY DormitoryName;`;
   db_olap.query(sql, (err, results) => {
     if (err) {
       console.error("Error fetching availableRoomsTable:", err);

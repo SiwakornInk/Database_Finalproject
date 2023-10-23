@@ -74,8 +74,7 @@
             <th>Available Rooms</th>
           </tr>
         </thead>
-        <tbody>
-        </tbody>
+        <tbody></tbody>
       </table>
     </div>
 
@@ -89,7 +88,7 @@
               .getContext("2d");
 
             const sizes = data.map((item) => item.Size);
-            const avgRents = data.map((item) => item.Avg_Rent);
+            const avgRents = data.map((item) => item.AverageMonthlyRent);
 
             new Chart(ctx, {
               type: "line",
@@ -99,8 +98,8 @@
                   {
                     label: "Average Monthly Rent",
                     data: avgRents,
-                    backgroundColor: "rgba(75, 192, 192, 0.2)", 
-                    borderColor: "rgba(75, 192, 192, 1)", 
+                    backgroundColor: "rgba(75, 192, 192, 0.2)",
+                    borderColor: "rgba(75, 192, 192, 1)",
                     borderWidth: 1,
                   },
                 ],
@@ -125,8 +124,8 @@
               .getElementById("bookingsByDormitoryChart")
               .getContext("2d");
 
-            const dormitoryNames = data.map((item) => item.Dormitory_Name);
-            const bookingCounts = data.map((item) => item.Booking_Count);
+            const dormitoryNames = data.map((item) => item.DormitoryName);
+            const bookingCounts = data.map((item) => item.BookingCount);
 
             new Chart(ctx, {
               type: "bar",
@@ -136,8 +135,8 @@
                   {
                     label: "Number of Bookings",
                     data: bookingCounts,
-                    backgroundColor: "rgba(153, 102, 255, 0.2)", 
-                    borderColor: "rgba(153, 102, 255, 1)", 
+                    backgroundColor: "rgba(153, 102, 255, 0.2)",
+                    borderColor: "rgba(153, 102, 255, 1)",
                     borderWidth: 1,
                   },
                 ],
@@ -176,12 +175,12 @@
                   {
                     data: counts,
                     backgroundColor: [
-                    "rgba(54, 162, 235, 0.2)",
-                    "rgba(255, 99, 132, 0.2)", 
+                      "rgba(54, 162, 235, 0.2)",
+                      "rgba(255, 99, 132, 0.2)",
                     ],
                     borderColor: [
-                    "rgba(54, 162, 235, 1)",
-                    "rgba(255, 99, 132, 1)", 
+                      "rgba(54, 162, 235, 1)",
+                      "rgba(255, 99, 132, 1)",
                     ],
                     borderWidth: 1,
                   },
@@ -221,11 +220,17 @@
               .getElementById("cumulativeBookingOverTimeChart")
               .getContext("2d");
 
-            const dates = data.map(
-              (item) => new Date(item.Booking_Date).toISOString().split("T")[0]
+            const dates = data.map((item) => {
+              const parsedDate = new Date(item.Date);
+              parsedDate.setDate(parsedDate.getDate() + 1);
+              return parsedDate.toISOString().split("T")[0];
+            });
+
+            const bookingCounts = data.map((item) =>
+              parseInt(item.BookingCount)
             );
-            const cumulativeCounts = data.map(
-              (item) => item.Cumulative_Booking_Count
+            const cancellationCounts = data.map((item) =>
+              parseInt(item.CancellationCount)
             );
 
             new Chart(ctx, {
@@ -234,10 +239,18 @@
                 labels: dates,
                 datasets: [
                   {
-                    label: "Cumulative Bookings Over Time",
-                    data: cumulativeCounts,
-                    backgroundColor: "rgba(153, 102, 255, 0.2)", 
-                    borderColor: "rgba(153, 102, 255, 1)", 
+                    label: "Booking Counts",
+                    data: bookingCounts,
+                    backgroundColor: "rgba(153, 102, 255, 0.2)",
+                    borderColor: "rgba(153, 102, 255, 1)",
+                    borderWidth: 1,
+                    fill: false,
+                  },
+                  {
+                    label: "Cancellation Counts",
+                    data: cancellationCounts,
+                    backgroundColor: "rgba(255, 159, 64, 0.2)",
+                    borderColor: "rgba(255, 159, 64, 1)",
                     borderWidth: 1,
                     fill: false,
                   },
@@ -257,7 +270,7 @@
           })
           .catch((err) => {
             console.error(
-              "Failed to fetch OLAP data for cumulative bookings over time:",
+              "Failed to fetch OLAP data for bookings and cancellations over time:",
               err
             );
           });
@@ -271,8 +284,8 @@
             data.forEach((row) => {
               const tr = document.createElement("tr");
               tr.innerHTML = `
-                <td>${row.Dormitory_Name}</td>
-                <td>${row.Available_Room_Count}</td>
+                <td>${row.DormitoryName}</td>
+                <td>${row.AvailableRooms}</td>
             `;
               tableBody.appendChild(tr);
             });
