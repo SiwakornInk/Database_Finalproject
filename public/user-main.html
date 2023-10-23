@@ -144,7 +144,7 @@
         fetch("/api/rooms")
           .then((response) => response.json())
           .then((rooms) => {
-            console.log("Received rooms data:", rooms); 
+            console.log("Received rooms data:", rooms);
 
             const tableBody = document
               .getElementById("availableRooms")
@@ -305,7 +305,7 @@
           const result = await response.json();
           if (result.message === "Booking successful") {
             alert("Booking successful");
-            window.location.reload(); 
+            window.location.reload();
           } else {
             alert(result.message);
           }

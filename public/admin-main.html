@@ -71,6 +71,7 @@
         <thead>
           <tr>
             <th>Dormitory Name</th>
+            <th>Number of Rooms</th>
             <th>Available Rooms</th>
           </tr>
         </thead>
@@ -284,8 +285,9 @@
             data.forEach((row) => {
               const tr = document.createElement("tr");
               tr.innerHTML = `
-                <td>${row.DormitoryName}</td>
-                <td>${row.AvailableRooms}</td>
+                <td>${row.dormitory_name}</td>
+                <td>${row.number_of_rooms}</td>
+                <td>${row.available_rooms}</td>
             `;
               tableBody.appendChild(tr);
             });

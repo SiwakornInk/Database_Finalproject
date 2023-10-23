@@ -382,11 +382,29 @@ ORDER BY d.Date;
 
 app.get("/api/olap/availableRoomsByDormitory", (req, res) => {
   const sql = `
-  SELECT DormitoryName, COUNT(RoomID) as AvailableRooms
-FROM DimRoom
-WHERE IsAvailable = 1
-GROUP BY DormitoryName
-ORDER BY DormitoryName;`;
+  SELECT 
+    a.DormitoryName AS dormitory_name,
+    a.AllRooms AS "number_of_rooms",
+    COALESCE(b.AvailableRooms, 0) AS "available_rooms"
+FROM 
+(
+    SELECT 
+        DormitoryName, 
+        COUNT(RoomID) AS AllRooms
+    FROM DimRoom
+    GROUP BY DormitoryName
+) a
+LEFT JOIN 
+(
+    SELECT 
+        DormitoryName, 
+        COUNT(RoomID) AS AvailableRooms
+    FROM DimRoom
+    WHERE IsAvailable = 1
+    GROUP BY DormitoryName
+) b
+ON a.DormitoryName = b.DormitoryName
+ORDER BY a.DormitoryName;`;
   db_olap.query(sql, (err, results) => {
     if (err) {
       console.error("Error fetching availableRoomsTable:", err);
